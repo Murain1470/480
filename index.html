@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🌿 植物維護記錄</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+  :root {
+    --bg:#F0F5EC; --surface:#FAFCF8; --border:#C4D4B8;
+    --accent:#38691E; --accent-light:#E4F0DA;
+    --danger:#B83C2B; --warn:#9B7010;
+    --text:#1A2014; --muted:#687560; --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:60px;}
+
+  .tab-bar{background:var(--accent);display:flex;position:sticky;top:0;z-index:200;}
+  .tab-btn{flex:1;padding:14px 4px 12px;background:none;border:none;color:rgba(255,255,255,.5);
+    font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:700;cursor:pointer;
+    border-bottom:3px solid transparent;transition:all .2s;}
+  .tab-btn.active{color:#fff;border-bottom-color:#A8D85A;}
+  .tab-panel{display:none;} .tab-panel.active{display:block;}
+
+  .panel-header{background:var(--accent);color:#fff;padding:14px 16px;}
+  .panel-header h2{font-size:17px;font-weight:700;}
+  .panel-header p{font-size:11px;opacity:.6;margin-top:2px;}
+
+  .container{padding:14px;max-width:580px;margin:0 auto;}
+
+  .card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
+  .card-header{display:flex;align-items:center;gap:9px;padding:12px 14px;border-bottom:1.5px solid var(--border);background:#EEF4E8;}
+  .card-icon{font-size:16px;} .card-title{font-size:14px;font-weight:700;}
+  .card-body{padding:14px;display:flex;flex-direction:column;gap:12px;}
+
+  .field-group{display:flex;flex-direction:column;gap:5px;}
+  label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;}
+
+  input[type="text"],input[type="date"],textarea{
+    width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:8px;
+    font-family:'Noto Sans TC',sans-serif;font-size:15px;background:var(--bg);color:var(--text);
+    outline:none;-webkit-appearance:none;transition:border-color .2s,box-shadow .2s;}
+  input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,105,30,.12);background:#fff;}
+  textarea{resize:vertical;min-height:75px;line-height:1.6;}
+
+  .floor-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+  .floor-btn{padding:10px 4px;border:1.5px solid var(--border);border-radius:8px;
+    background:var(--bg);font-family:'Noto Sans TC',sans-serif;font-size:14px;font-weight:700;
+    color:var(--muted);cursor:pointer;text-align:center;transition:all .15s;}
+  .floor-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+  .chip-group{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{padding:7px 13px;border:1.5px solid var(--border);border-radius:20px;font-size:13px;cursor:pointer;background:var(--bg);user-select:none;transition:all .15s;}
+  .chip.sel-g{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .chip.sel-r{background:var(--danger);color:#fff;border-color:var(--danger);}
+  .chip.sel-y{background:var(--warn);color:#fff;border-color:var(--warn);}
+
+  .upload-area{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;}
+  .upload-area .u-icon{font-size:26px;margin-bottom:3px;}
+  .upload-area .u-text{font-size:13px;color:var(--muted);font-weight:600;}
+  .upload-area .u-hint{font-size:11px;color:#aaa;margin-top:2px;}
+
+  .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:9px;}
+  .p-thumb{aspect-ratio:1;border-radius:8px;overflow:hidden;position:relative;border:1.5px solid var(--border);background:#ddd;}
+  .p-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .rm-photo{position:absolute;top:3px;right:3px;width:22px;height:22px;border-radius:50%;
+    background:rgba(0,0,0,.6);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;}
+  .p-note{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.42);padding:3px 5px;}
+  .p-note input{background:transparent;border:none;color:#fff;font-size:10px;width:100%;padding:0;outline:none;font-family:'Noto Sans TC',sans-serif;}
+  .p-note input::placeholder{color:rgba(255,255,255,.5);}
+  input[type="file"]{display:none;}
+
+  .inc-list{display:flex;flex-direction:column;gap:8px;}
+  .inc-item{background:#FDF8F0;border:1.5px solid #E8D8B0;border-radius:8px;padding:10px;}
+  .inc-top{display:flex;justify-content:space-between;margin-bottom:6px;}
+  .inc-num{font-size:10px;font-weight:700;color:var(--warn);letter-spacing:1px;}
+  .rm-inc{background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;}
+  .inc-item textarea{background:transparent;border:none;padding:0;box-shadow:none;font-size:14px;min-height:52px;}
+  .inc-item textarea:focus{box-shadow:none;}
+
+  .add-btn{display:flex;align-items:center;gap:7px;padding:10px 13px;border:1.5px dashed var(--border);
+    border-radius:8px;background:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+    font-size:13px;color:var(--muted);font-weight:600;width:100%;}
+
+  .save-btn{width:100%;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:12px;
+    font-family:'Noto Sans TC',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px;}
+  .save-btn:disabled{opacity:.5;}
+
+  .total-box{background:var(--accent);color:#fff;border-radius:var(--radius);padding:18px 20px;
+    margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+  .total-box .t-label{font-size:13px;opacity:.8;}
+  .total-box .t-num{font-size:36px;font-weight:700;line-height:1;}
+  .total-box .t-unit{font-size:14px;margin-left:4px;}
+
+  .floor-stat{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+    margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;}
+  .floor-stat .f-name{font-size:16px;font-weight:700;}
+  .floor-stat .f-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+  .floor-stat .f-count{font-size:22px;font-weight:700;color:var(--accent);}
+  .floor-stat .f-unit{font-size:12px;color:var(--muted);}
+
+  .rec-item{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
+  .rec-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;background:#EEF4E8;}
+  .rec-head-left{display:flex;flex-direction:column;gap:2px;}
+  .rec-name{font-size:15px;font-weight:700;}
+  .rec-meta{font-size:11px;color:var(--muted);}
+  .rec-badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:12px;background:var(--accent-light);color:var(--accent);white-space:nowrap;flex-shrink:0;}
+  .rec-detail{padding:14px;display:none;border-top:1.5px solid var(--border);}
+  .rec-detail.open{display:block;}
+  .rec-section{margin-bottom:12px;}
+  .rec-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
+  .rec-text{font-size:14px;line-height:1.6;}
+  .rec-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;}
+  .rec-photo{aspect-ratio:1;border-radius:7px;overflow:hidden;border:1.5px solid var(--border);}
+  .rec-photo img{width:100%;height:100%;object-fit:cover;}
+  .rec-inc{background:#FDF8F0;border:1.5px solid #E8D8B0;border-radius:7px;padding:8px 10px;margin-bottom:6px;font-size:13px;}
+  .delete-btn{width:100%;padding:10px;background:none;color:var(--danger);border:1.5px solid var(--danger);
+    border-radius:10px;font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;}
+
+  .empty-state{text-align:center;padding:48px 20px;color:var(--muted);}
+  .empty-state .e-icon{font-size:48px;margin-bottom:10px;}
+  .empty-state p{font-size:14px;}
+  .loading{text-align:center;padding:30px;color:var(--muted);font-size:14px;}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(14px);
+    background:#1A2014;color:#fff;padding:11px 22px;border-radius:24px;
+    font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:all .3s;
+    white-space:nowrap;z-index:999;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="form">📝 新增</button>
+  <button class="tab-btn" data-tab="stats">📊 統計</button>
+  <button class="tab-btn" data-tab="list">📂 歷史</button>
+</div>
+
+<!-- 新增記錄 -->
+<div class="tab-panel active" id="tab-form">
+  <div class="panel-header">
+    <h2>🌿 植物維護記錄</h2>
+    <p>填寫完畢後點「儲存」</p>
+  </div>
+  <div class="container">
+    <div class="card">
+      <div class="card-header"><span class="card-icon">📋</span><span class="card-title">基本資訊</span></div>
+      <div class="card-body">
+        <div class="field-group">
+          <label>樓層</label>
+          <div class="floor-grid" id="floor-picker">
+            <button class="floor-btn" data-floor="1">1F</button>
+            <button class="floor-btn" data-floor="2">2F</button>
+            <button class="floor-btn" data-floor="3">3F</button>
+            <button class="floor-btn" data-floor="4">4F</button>
+            <button class="floor-btn" data-floor="5">5F</button>
+            <button class="floor-btn" data-floor="6">6F</button>
+            <button class="floor-btn" data-floor="7">7F</button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label>植物名稱</label>
+          <input type="text" id="f-item" placeholder="例：黃金葛、仙人掌…">
+        </div>
+        <div class="field-group">
+          <label>維護日期</label>
+          <input type="date" id="f-date">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-icon">🔍</span><span class="card-title">維護前狀況</span></div>
+      <div class="card-body">
+        <div class="field-group">
+          <label>植物狀態</label>
+          <div class="chip-group" id="c-before">
+            <div class="chip" data-group="c-before" data-cls="sel-r">枯萎 / 生病</div>
+            <div class="chip" data-group="c-before" data-cls="sel-y">輕微異常</div>
+            <div class="chip" data-group="c-before" data-cls="sel-g">健康正常</div>
+          </div>
+        </div>
+        <div class="field-group">
+          <label>說明</label>
+          <textarea id="f-before" placeholder="描述維護前的狀況…"></textarea>
+        </div>
+        <div class="field-group">
+          <label>📷 維護前照片</label>
+          <div class="upload-area" data-target="up-before">
+            <div class="u-icon">📸</div>
+            <div class="u-text">點此拍照或選擇照片</div>
+            <div class="u-hint">會跳出相機或相簿選項</div>
+          </div>
+          <input type="file" id="up-before" accept="image/*" multiple data-grid="grid-before">
+          <div class="photo-grid" id="grid-before"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-icon">⚠️</span><span class="card-title">維護中狀況微報</span></div>
+      <div class="card-body">
+        <div class="inc-list" id="inc-list"></div>
+        <button class="add-btn" id="add-inc-btn">＋ 新增狀況記錄</button>
+        <div class="field-group" style="margin-top:4px">
+          <label>📷 維護中照片</label>
+          <div class="upload-area" data-target="up-during">
+            <div class="u-icon">📸</div>
+            <div class="u-text">點此拍照或選擇照片</div>
+            <div class="u-hint">會跳出相機或相簿選項</div>
+          </div>
+          <input type="file" id="up-during" accept="image/*" multiple data-grid="grid-during">
+          <div class="photo-grid" id="grid-during"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-icon">✅</span><span class="card-title">維護後狀況</span></div>
+      <div class="card-body">
+        <div class="field-group">
+          <label>維護結果</label>
+          <div class="chip-group" id="c-after">
+            <div class="chip" data-group="c-after" data-cls="sel-g">完全恢復</div>
+            <div class="chip" data-group="c-after" data-cls="sel-y">持續觀察</div>
+            <div class="chip" data-group="c-after" data-cls="sel-r">需再處理</div>
+          </div>
+        </div>
+        <div class="field-group">
+          <label>說明</label>
+          <textarea id="f-after" placeholder="描述維護後的狀態…"></textarea>
+        </div>
+        <div class="field-group">
+          <label>📷 維護後照片</label>
+          <div class="upload-area" data-target="up-after">
+            <div class="u-icon">📸</div>
+            <div class="u-text">點此拍照或選擇照片</div>
+            <div class="u-hint">會跳出相機或相簿選項</div>
+          </div>
+          <input type="file" id="up-after" accept="image/*" multiple data-grid="grid-after">
+          <div class="photo-grid" id="grid-after"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="save-btn" id="save-btn">💾 儲存記錄</button>
+  </div>
+</div>
+
+<!-- 統計 -->
+<div class="tab-panel" id="tab-stats">
+  <div class="panel-header">
+    <h2>📊 維護統計</h2>
+    <p>各樓層記錄筆數</p>
+  </div>
+  <div class="container" id="stats-container">
+    <div class="loading">載入中…</div>
+  </div>
+</div>
+
+<!-- 歷史 -->
+<div class="tab-panel" id="tab-list">
+  <div class="panel-header">
+    <h2>📂 歷史維護記錄</h2>
+    <p>點選可展開詳細內容</p>
+  </div>
+  <div class="container" id="rec-list">
+    <div class="loading">載入中…</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, orderBy, query }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyBRaAmrdPcBlN2zOAb71-BtLbdJUu7KDYA",
+  authDomain: "project-4507835829717346705.firebaseapp.com",
+  projectId: "project-4507835829717346705",
+  storageBucket: "project-4507835829717346705.firebasestorage.app",
+  messagingSenderId: "68553953803",
+  appId: "1:68553953803:web:762fa5e4353bcce0bb2d0e"
+});
+const db = getFirestore(app);
+
+let selectedFloor = null;
+let incCount = 0;
+
+// ── init date ──
+document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+
+// ── TABS ──
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.tab;
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+    if (id === 'stats') renderStats();
+    if (id === 'list') renderList();
+  });
+});
+
+// ── FLOOR ──
+document.querySelectorAll('.floor-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedFloor = parseInt(btn.dataset.floor);
+    document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+// ── CHIPS ──
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const gid = chip.dataset.group;
+    const cls = chip.dataset.cls;
+    document.querySelectorAll(`#${gid} .chip`).forEach(c => c.className = 'chip');
+    chip.classList.add(cls);
+    // re-attach data so selector still works
+    chip.dataset.group = gid;
+    chip.dataset.cls = cls;
+  });
+});
+
+function getChip(gid) {
+  const el = document.querySelector(`#${gid} .chip.sel-g, #${gid} .chip.sel-r, #${gid} .chip.sel-y`);
+  return el ? el.textContent.trim() : '';
+}
+
+// ── PHOTO UPLOAD AREAS ──
+document.querySelectorAll('.upload-area').forEach(area => {
+  area.addEventListener('click', () => {
+    document.getElementById(area.dataset.target).click();
+  });
+});
+
+document.querySelectorAll('input[type="file"]').forEach(input => {
+  input.addEventListener('change', () => {
+    const gridId = input.dataset.grid;
+    const grid = document.getElementById(gridId);
+    Array.from(input.files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX = 800;
+          let w = img.width, h = img.height;
+          if (w > MAX || h > MAX) {
+            if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+            else { w = Math.round(w * MAX / h); h = MAX; }
+          }
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const src = canvas.toDataURL('image/jpeg', 0.6);
+          const div = document.createElement('div');
+          div.className = 'p-thumb';
+          div.innerHTML = `<img src="${src}"><button class="rm-photo">✕</button><div class="p-note"><input type="text" placeholder="備注…"></div>`;
+          div.querySelector('.rm-photo').addEventListener('click', () => div.remove());
+          grid.appendChild(div);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    input.value = ''; // reset so same file can be selected again
+  });
+});
+
+// ── INCIDENTS ──
+document.getElementById('add-inc-btn').addEventListener('click', () => {
+  incCount++;
+  const list = document.getElementById('inc-list');
+  const el = document.createElement('div');
+  el.className = 'inc-item';
+  el.innerHTML = `<div class="inc-top"><span class="inc-num">狀況 #${String(incCount).padStart(2,'0')}</span><button class="rm-inc">✕</button></div><textarea placeholder="描述狀況、異常、處置方式…"></textarea>`;
+  el.querySelector('.rm-inc').addEventListener('click', () => el.remove());
+  list.appendChild(el);
+  el.querySelector('textarea').focus();
+});
+
+function getPhotos(gridId) {
+  return Array.from(document.querySelectorAll(`#${gridId} .p-thumb`)).map(el => ({
+    src: el.querySelector('img').src,
+    note: el.querySelector('input').value
+  }));
+}
+
+function getIncs() {
+  return Array.from(document.querySelectorAll('#inc-list textarea')).map(t => t.value).filter(v => v.trim());
+}
+
+// ── SAVE ──
+document.getElementById('save-btn').addEventListener('click', async () => {
+  if (!selectedFloor) { showToast('⚠️ 請選擇樓層'); return; }
+  const item = document.getElementById('f-item').value.trim();
+  if (!item) { showToast('⚠️ 請填寫植物名稱'); return; }
+
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true; btn.textContent = '儲存中…';
+
+  try {
+    await addDoc(collection(db, 'plantRecords'), {
+      floor: selectedFloor,
+      item,
+      date: document.getElementById('f-date').value,
+      before: { status: getChip('c-before'), desc: document.getElementById('f-before').value, photos: getPhotos('grid-before') },
+      during: { incidents: getIncs(), photos: getPhotos('grid-during') },
+      after: { status: getChip('c-after'), desc: document.getElementById('f-after').value, photos: getPhotos('grid-after') },
+      createdAt: Date.now()
+    });
+    showToast(`✅ ${selectedFloor}F・${item} 已儲存！`);
+    resetForm();
+  } catch(e) {
+    console.error(e);
+    showToast('❌ 儲存失敗，請檢查網路');
+  }
+  btn.disabled = false; btn.textContent = '💾 儲存記錄';
+});
+
+function resetForm() {
+  selectedFloor = null;
+  document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('f-item').value = '';
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('f-before').value = '';
+  document.getElementById('f-after').value = '';
+  document.querySelectorAll('.chip').forEach(c => {
+    c.className = 'chip';
+    // restore data attributes
+    if (c.dataset.group) {
+      c.dataset.group = c.dataset.group;
+      c.dataset.cls = c.dataset.cls;
+    }
+  });
+  ['grid-before','grid-during','grid-after'].forEach(g => document.getElementById(g).innerHTML='');
+  document.getElementById('inc-list').innerHTML = '';
+  incCount = 0;
+}
+
+// ── FETCH ──
+async function fetchRecords() {
+  const q = query(collection(db, 'plantRecords'), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// ── STATS ──
+async function renderStats() {
+  const c = document.getElementById('stats-container');
+  c.innerHTML = '<div class="loading">載入中…</div>';
+  try {
+    const records = await fetchRecords();
+    const total = records.length;
+    const floorMap = {};
+    for (let f = 1; f <= 7; f++) floorMap[f] = 0;
+    records.forEach(r => { if (r.floor) floorMap[r.floor]++; });
+
+    let html = `
+      <div class="total-box">
+        <div class="t-label">全部維護記錄</div>
+        <div><span class="t-num">${total}</span><span class="t-unit"> 筆</span></div>
+      </div>
+    `;
+    for (let f = 1; f <= 7; f++) {
+      html += `
+        <div class="floor-stat">
+          <div>
+            <div class="f-name">🌿 ${f} 樓</div>
+            <div class="f-sub">維護記錄</div>
+          </div>
+          <div style="text-align:right">
+            <div class="f-count">${floorMap[f]}</div>
+            <div class="f-unit">筆</div>
+          </div>
+        </div>
+      `;
+    }
+    c.innerHTML = html;
+  } catch(e) {
+    c.innerHTML = '<div class="empty-state"><div class="e-icon">⚠️</div><p>載入失敗</p></div>';
+  }
+}
+
+// ── LIST ──
+async function renderList() {
+  const c = document.getElementById('rec-list');
+  c.innerHTML = '<div class="loading">載入中…</div>';
+  try {
+    const records = await fetchRecords();
+    if (!records.length) {
+      c.innerHTML = `<div class="empty-state"><div class="e-icon">🌱</div><p>還沒有記錄<br>去新增第一筆吧！</p></div>`;
+      return;
+    }
+
+    c.innerHTML = records.map(r => `
+      <div class="rec-item">
+        <div class="rec-head" data-id="${r.id}">
+          <div class="rec-head-left">
+            <span class="rec-name">🌿 ${r.floor}F &nbsp;·&nbsp; ${r.item || ''}</span>
+            <span class="rec-meta">${r.date}</span>
+          </div>
+          <span class="rec-badge">${r.after && r.after.status ? r.after.status : '—'}</span>
+        </div>
+        <div class="rec-detail" id="rec-${r.id}">
+          <div class="rec-section">
+            <div class="rec-section-title">🔍 維護前${r.before && r.before.status ? ' — ' + r.before.status : ''}</div>
+            ${r.before && r.before.desc ? `<div class="rec-text">${r.before.desc}</div>` : ''}
+            ${r.before && r.before.photos && r.before.photos.length ? `<div class="rec-photos">${r.before.photos.map(p=>`<div class="rec-photo"><img src="${p.src}"></div>`).join('')}</div>` : ''}
+          </div>
+          ${r.during && r.during.incidents && r.during.incidents.length ? `<div class="rec-section"><div class="rec-section-title">⚠️ 維護中狀況</div>${r.during.incidents.map(i=>`<div class="rec-inc">${i}</div>`).join('')}</div>` : ''}
+          ${r.during && r.during.photos && r.during.photos.length ? `<div class="rec-section"><div class="rec-section-title">📷 維護中照片</div><div class="rec-photos">${r.during.photos.map(p=>`<div class="rec-photo"><img src="${p.src}"></div>`).join('')}</div></div>` : ''}
+          <div class="rec-section">
+            <div class="rec-section-title">✅ 維護後${r.after && r.after.status ? ' — ' + r.after.status : ''}</div>
+            ${r.after && r.after.desc ? `<div class="rec-text">${r.after.desc}</div>` : ''}
+            ${r.after && r.after.photos && r.after.photos.length ? `<div class="rec-photos">${r.after.photos.map(p=>`<div class="rec-photo"><img src="${p.src}"></div>`).join('')}</div>` : ''}
+          </div>
+          <button class="delete-btn" data-id="${r.id}">🗑 刪除此記錄</button>
+        </div>
+      </div>
+    `).join('');
+
+    // attach toggle events
+    c.querySelectorAll('.rec-head').forEach(head => {
+      head.addEventListener('click', () => {
+        document.getElementById('rec-' + head.dataset.id).classList.toggle('open');
+      });
+    });
+
+    // attach delete events
+    c.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('確定要刪除這筆記錄嗎？')) return;
+        try {
+          await deleteDoc(doc(db, 'plantRecords', btn.dataset.id));
+          showToast('🗑 已刪除');
+          renderList();
+        } catch(e) { showToast('❌ 刪除失敗'); }
+      });
+    });
+
+  } catch(e) {
+    c.innerHTML = '<div class="empty-state"><div class="e-icon">⚠️</div><p>載入失敗</p></div>';
+  }
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+</script>
+</body>
+</html>
