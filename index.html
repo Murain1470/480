@@ -36,11 +36,13 @@
   .field-group{display:flex;flex-direction:column;gap:5px;}
   label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.4px;text-transform:uppercase;}
 
-  input[type="text"],input[type="date"],textarea{
+  input[type="text"],input[type="date"],select,textarea{
     width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:8px;
     font-family:'Noto Sans TC',sans-serif;font-size:15px;background:var(--bg);color:var(--text);
     outline:none;-webkit-appearance:none;transition:border-color .2s,box-shadow .2s;}
-  input:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,105,30,.12);background:#fff;}
+  input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,105,30,.12);background:#fff;}
+  select{background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 18px) 50%,calc(100% - 12px) 50%;background-size:6px 6px,6px 6px;background-repeat:no-repeat;padding-right:34px;}
   textarea{resize:vertical;min-height:75px;line-height:1.6;}
 
   .floor-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
@@ -89,8 +91,12 @@
   .total-box{background:var(--accent);color:#fff;border-radius:var(--radius);padding:18px 20px;
     margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
   .total-box .t-label{font-size:13px;opacity:.8;}
+  .total-box .t-date{font-size:12px;opacity:.7;}
   .total-box .t-num{font-size:36px;font-weight:700;line-height:1;}
   .total-box .t-unit{font-size:14px;margin-left:4px;}
+
+  .stats-tools{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
+    padding:12px 14px;margin-bottom:12px;}
 
   .floor-stat{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);
     margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;}
@@ -161,7 +167,17 @@
         </div>
         <div class="field-group">
           <label>植物名稱</label>
-          <input type="text" id="f-item" placeholder="例：黃金葛、仙人掌…">
+          <select id="f-item">
+            <option value="">請選擇植物</option>
+            <option value="觀音棕竹">觀音棕竹</option>
+            <option value="琴葉榕">琴葉榕</option>
+            <option value="龜背芋">龜背芋</option>
+            <option value="其他">其他</option>
+          </select>
+        </div>
+        <div class="field-group">
+          <label>位置</label>
+          <input type="text" id="f-location" placeholder="例：電梯旁、窗邊、會議室入口…">
         </div>
         <div class="field-group">
           <label>維護日期</label>
@@ -252,10 +268,18 @@
 <div class="tab-panel" id="tab-stats">
   <div class="panel-header">
     <h2>📊 維護統計</h2>
-    <p>各樓層記錄筆數</p>
+    <p>選擇日期查看當天維護盆數</p>
   </div>
-  <div class="container" id="stats-container">
-    <div class="loading">載入中…</div>
+  <div class="container">
+    <div class="stats-tools">
+      <div class="field-group">
+        <label>統計日期</label>
+        <input type="date" id="stats-date">
+      </div>
+    </div>
+    <div id="stats-container">
+      <div class="loading">載入中…</div>
+    </div>
   </div>
 </div>
 
@@ -290,8 +314,18 @@ const db = getFirestore(app);
 let selectedFloor = null;
 let incCount = 0;
 
+function getTodayString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // ── init date ──
-document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+document.getElementById('f-date').value = getTodayString();
+document.getElementById('stats-date').value = getTodayString();
+document.getElementById('stats-date').addEventListener('change', renderStats);
 
 // ── TABS ──
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -400,7 +434,8 @@ function getIncs() {
 document.getElementById('save-btn').addEventListener('click', async () => {
   if (!selectedFloor) { showToast('⚠️ 請選擇樓層'); return; }
   const item = document.getElementById('f-item').value.trim();
-  if (!item) { showToast('⚠️ 請填寫植物名稱'); return; }
+  const location = document.getElementById('f-location').value.trim();
+  if (!item) { showToast('⚠️ 請選擇植物名稱'); return; }
 
   const btn = document.getElementById('save-btn');
   btn.disabled = true; btn.textContent = '儲存中…';
@@ -409,6 +444,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     await addDoc(collection(db, 'plantRecords'), {
       floor: selectedFloor,
       item,
+      location,
       date: document.getElementById('f-date').value,
       before: { status: getChip('c-before'), desc: document.getElementById('f-before').value, photos: getPhotos('grid-before') },
       during: { incidents: getIncs(), photos: getPhotos('grid-during') },
@@ -417,6 +453,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     });
     showToast(`✅ ${selectedFloor}F・${item} 已儲存！`);
     resetForm();
+    if (document.getElementById('tab-stats').classList.contains('active')) renderStats();
   } catch(e) {
     console.error(e);
     showToast('❌ 儲存失敗，請檢查網路');
@@ -428,7 +465,8 @@ function resetForm() {
   selectedFloor = null;
   document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('f-item').value = '';
-  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('f-location').value = '';
+  document.getElementById('f-date').value = getTodayString();
   document.getElementById('f-before').value = '';
   document.getElementById('f-after').value = '';
   document.querySelectorAll('.chip').forEach(c => {
@@ -456,7 +494,8 @@ async function renderStats() {
   const c = document.getElementById('stats-container');
   c.innerHTML = '<div class="loading">載入中…</div>';
   try {
-    const records = await fetchRecords();
+    const selectedDate = document.getElementById('stats-date').value || getTodayString();
+    const records = (await fetchRecords()).filter(r => r.date === selectedDate);
     const total = records.length;
     const floorMap = {};
     for (let f = 1; f <= 7; f++) floorMap[f] = 0;
@@ -464,7 +503,10 @@ async function renderStats() {
 
     let html = `
       <div class="total-box">
-        <div class="t-label">全部維護記錄</div>
+        <div>
+          <div class="t-label">當日維護記錄</div>
+          <div class="t-date">${selectedDate}</div>
+        </div>
         <div><span class="t-num">${total}</span><span class="t-unit"> 筆</span></div>
       </div>
     `;
@@ -503,7 +545,7 @@ async function renderList() {
       <div class="rec-item">
         <div class="rec-head" data-id="${r.id}">
           <div class="rec-head-left">
-            <span class="rec-name">🌿 ${r.floor}F &nbsp;·&nbsp; ${r.item || ''}</span>
+            <span class="rec-name">🌿 ${r.floor}F &nbsp;·&nbsp; ${r.item || ''}${r.location ? ' · ' + r.location : ''}</span>
             <span class="rec-meta">${r.date}</span>
           </div>
           <span class="rec-badge">${r.after && r.after.status ? r.after.status : '—'}</span>
